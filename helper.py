@@ -65,5 +65,3 @@ def unpacker(listt):
     for i in listt:
         spis.append(f'{i[0]} - {i[1]}')
     return spis
-
-
