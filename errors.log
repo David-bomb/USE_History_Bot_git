@@ -1,1 +1,41 @@
 2022-09-02 20:36:25,832 ERROR root no such column: jojo
+2022-09-03 20:34:05,946 ERROR root no such column: Jotaro
+2022-09-03 20:46:23,863 ERROR root Incorrect number of bindings supplied. The current statement uses 0, and there are 10 supplied.
+2022-10-24 21:05:49,212 ERROR root Incorrect number of bindings supplied. The current statement uses 0, and there are 4 supplied.
+2022-10-24 21:06:12,645 ERROR root Incorrect number of bindings supplied. The current statement uses 0, and there are 6 supplied.
+2022-10-24 21:06:18,371 ERROR root Incorrect number of bindings supplied. The current statement uses 0, and there are 4 supplied.
+2022-10-24 21:12:49,739 ERROR root Message is too long
+2022-10-24 21:14:10,884 ERROR root Incorrect number of bindings supplied. The current statement uses 0, and there are 4 supplied.
+2022-10-24 21:16:04,562 ERROR root Message is too long
+2022-10-24 21:16:16,769 ERROR root Incorrect number of bindings supplied. The current statement uses 0, and there are 4 supplied.
+2022-10-24 21:19:54,649 ERROR root Incorrect number of bindings supplied. The current statement uses 0, and there are 4 supplied.
+2022-10-24 21:20:44,913 ERROR root Message is too long
+2022-10-24 21:25:58,445 ERROR root Message is too long
+2022-10-24 21:52:44,068 ERROR asyncio Task exception was never retrieved
+future: <Task finished name='Task-7' coro=<Dispatcher._process_polling_updates() done, defined at C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\aiogram\dispatcher\dispatcher.py:407> exception=BadRequest('Unsupported parse_mode')>
+Traceback (most recent call last):
+  File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\aiogram\dispatcher\dispatcher.py", line 415, in _process_polling_updates
+    for responses in itertools.chain.from_iterable(await self.process_updates(updates, fast)):
+  File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\aiogram\dispatcher\dispatcher.py", line 235, in process_updates
+    return await asyncio.gather(*tasks)
+  File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\aiogram\dispatcher\handler.py", line 116, in notify
+    response = await handler_obj.handler(*args, **partial_data)
+  File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\aiogram\dispatcher\dispatcher.py", line 256, in process_update
+    return await self.message_handlers.notify(update.message)
+  File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\aiogram\dispatcher\handler.py", line 116, in notify
+    response = await handler_obj.handler(*args, **partial_data)
+  File "C:\Users\Acer\PycharmProjects\USE_History_Bot\USE_History_Bot_git\main.py", line 62, in about
+    await msg.reply('На самом деле я пока что знаю только даты по истории России, из-за просчёта моего автора не все даты были занесены в мою память. Я серьёзно поговорю с ним, так как я хочу знать больше!\n',
+  File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\aiogram\types\message.py", line 1599, in reply
+    return await self.bot.send_message(
+  File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\aiogram\bot\bot.py", line 334, in send_message
+    result = await self.request(api.Methods.SEND_MESSAGE, payload)
+  File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\aiogram\bot\base.py", line 231, in request
+    return await api.make_request(await self.get_session(), self.server, self.__token, method, data, files,
+  File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\aiogram\bot\api.py", line 140, in make_request
+    return check_result(method, response.content_type, response.status, await response.text())
+  File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\aiogram\bot\api.py", line 115, in check_result
+    exceptions.BadRequest.detect(description)
+  File "C:\Users\Acer\AppData\Local\Programs\Python\Python310\lib\site-packages\aiogram\utils\exceptions.py", line 141, in detect
+    raise cls(description)
+aiogram.utils.exceptions.BadRequest: Unsupported parse_mode

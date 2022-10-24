@@ -45,7 +45,7 @@ async def start(msg: types.Message):
 
 @dp.message_handler(commands=['help'])  # Команда помощь ¯\_(ツ)_/¯
 async def help(msg: types.Message):
-    message = 'Нужна помощь? Я всегда любил помогать!\nЯ могу:\n-Отправить вам все даты, которые я знаю по команде /view_dates\n-Найти нужны вам даты по команде /browse [запрос], например: /browse 1945  , также можно и так:  /browse 9 мая 1945 , либо  /browse январь 1945  . Лишних знаков препинания не треуется. Я буду самосовершенствоваться. Я обещаю!!!'
+    message = 'Нужна помощь? Я всегда любил помогать!\nЯ могу:\n-Отправить вам все даты, которые я знаю по команде /view_dates\n-Найти нужны вам даты по команде /browse [запрос], например: /browse 1945  , также можно и так:  /browse 9 мая 1945 , либо  /browse январь 1945. Лишних знаков препинания не треуется.\nЯ буду самосовершенствоваться. Я обещаю!!!\nP.s. Я знаю только даты по истории России, но я обязательно выучу новые, чтобы потом рассказывать их вам!'
     await msg.reply(message)
 
 
@@ -57,24 +57,41 @@ async def view(msg: types.Message):
         await bot.send_message(msg.chat.id, '\n'.join(txtDates)[x:x + 4096], parse_mode='markdown')
 
 
+'''@dp.message_handler(commands=['info'])
+async def info(msg: types.Message):
+    message = ''
+    await msg.reply(message)'''
+
+
 @dp.message_handler(commands=['browse'])  # Первый прототип поиска по датам
 async def search(msg: types.Message):
     '''with open("dates.json", "r") as read_file:
         JsDates = json.load(read_file)'''
     argument = msg.get_args()  # Получение даты
+    # print(f'Я получил дату! {argument}')
     # print(JsDates.keys())
     try:
-        if len(argument) == 3:  # TODO Доделать отсеивание лишних дат. ПРИМЕР: arg: 1945 , 1945 in ans
+        if len(argument) == 3:  # TODO Доделать отсеивание лишних дат. ПРИМЕР: arg: 945 , 1945 in ans
+            argument = '0' + argument
+            # print('Код 3. Запрос')
             date = cursor.execute(f''' SELECT * FROM dates WHERE date like '%{argument}%' ''').fetchall()
+            # print(f'Код 3. Получил: {date}')
             if date:
                 # print(date)
-                await bot.send_message(msg.chat.id, '\n'.join(unpacker(date)))
+                for x in range(0, len('\n'.join(unpacker(date))), 4096):
+                    await bot.send_message(msg.chat.id, '\n'.join(unpacker(date))[x:x + 4096], parse_mode='markdown')
             else:
-                await msg.reply('Ничего не найдено!')
+                await msg.reply('Ничего не  найдено!')
         elif len(argument) >= 4:
+            # print('Код 4. Запрос')
             date = cursor.execute(f''' SELECT * FROM dates WHERE date like '%{argument}%' ''').fetchall()
+            # print(f'Код 4. Получил: {date}')
             if date:
-                await bot.send_message(msg.chat.id, '\n'.join(unpacker(date)))
+                # print('Код 4. Отправляю...')
+                # await bot.send_message(msg.chat.id, '\n'.join(unpacker(date)))
+                for x in range(0, len('\n'.join(unpacker(date))), 4096):
+                    await bot.send_message(msg.chat.id, '\n'.join(unpacker(date))[x:x + 4096], parse_mode='markdown')
+                # print('Код 4. Отправил')
             else:
                 await msg.reply('Ничего не найдено!')
         else:
@@ -82,6 +99,78 @@ async def search(msg: types.Message):
     except Exception as e:
         logging.error(str(e))
         await msg.reply('Ошибка запроса! Попробуйте вписать запрос по шаблону!')
+
+
+@dp.message_handler(content_types=[types.ContentType.TEXT])  # Обработка обычных текстовых сообщений
+async def get_text_messages(msg: types.Message):
+    await msg.reply(
+        f'Прошу прощения, {msg.from_user.first_name} , я не могу понять, что вы мне написали.\nИспользуйте команды пожалуйста.')
+
+
+@dp.message_handler(content_types=[types.ContentType.AUDIO])  # Обработка звуковых файлов
+async def get_text_messages(msg: types.Message):
+    await msg.reply(
+        f'Я бы послушал всё, что вы я сейчас от вас получил. Но я не умею.\nИспользуйте команды пожалуйста.')
+
+
+@dp.message_handler(content_types=[types.ContentType.DOCUMENT])  # Обработка документов
+async def get_text_messages(msg: types.Message):
+    await msg.reply(
+        f'Ничего себе! Целый документ! Умел бы я их читать, я бы с умным видом этим бы и зянялся.\nИспользуйте команды пожалуйста.')
+
+
+@dp.message_handler(content_types=[types.ContentType.GAME])  # Обработка полученных игр???
+async def get_text_messages(msg: types.Message):
+    await msg.reply(
+        f'Я сам заядлый игрок конечно, но сейчас я при исполнении! Так что вынужден отказаться.\nИспользуйте команды пожалуйста.')
+
+
+@dp.message_handler(content_types=[types.ContentType.PHOTO])  # Обработка фото
+async def get_text_messages(msg: types.Message):
+    await msg.reply(
+        f'Я бы сказал, что мне нравится фото, если бы они для меня не были набором символов.\nИспользуйте команды пожалуйста.')
+
+
+@dp.message_handler(content_types=[types.ContentType.STICKER])  # Обработка стикера
+async def get_text_messages(msg: types.Message):
+    await msg.reply(
+        f'Классный стикер! А я вот не знаю, как их добавлять, так ответить не могу...\nИспользуйте команды пожалуйста.')
+
+
+@dp.message_handler(content_types=[types.ContentType.VIDEO])  # Обработка фото
+async def get_text_messages(msg: types.Message):
+    await msg.reply(
+        f'Видео в большинстве своём много весят, не буду я скачивать твоё видео, а то на полезную информацию места не останется.\nИспользуйте команды пожалуйста.')
+
+
+@dp.message_handler(content_types=[types.ContentType.VOICE])  # Обработка фото
+async def get_text_messages(msg: types.Message):
+    await msg.reply(
+        f'Потом послушаю, я бот занятой.\nИспользуйте команды пожалуйста.')
+
+
+@dp.message_handler(content_types=[types.ContentType.CONTACT])  # Обработка фото
+async def get_text_messages(msg: types.Message):
+    await msg.reply(
+        f'Я не расположен к новым знакомствам сегодня...\nИспользуйте команды пожалуйста.')
+
+
+@dp.message_handler(content_types=[types.ContentType.LOCATION])  # Обработка фото
+async def get_text_messages(msg: types.Message):
+    await msg.reply(
+        f'Я и так в вашем устройстве, зачем мне к вам идти?\nИспользуйте команды пожалуйста.')
+
+
+@dp.message_handler(content_types=[types.ContentType.UNKNOWN])  # Обработка фото
+async def get_text_messages(msg: types.Message):
+    await msg.reply(
+        f'Используйте команды пожалуйста, а то я не понял, что я вообще получил...')
+
+
+@dp.message_handler(content_types=[types.ContentType.ANY])  # Обработка фото
+async def get_text_messages(msg: types.Message):
+    await msg.reply(
+        f'Я не понимаю, что я сейчас получил от вас. Извиняюсь.\nИспользуйте команды пожалуйста.')
 
 
 if __name__ == '__main__':
