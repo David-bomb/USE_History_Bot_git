@@ -1,11 +1,15 @@
 from aiogram import Bot, types
-from aiogram.dispatcher import Dispatcher
 from aiogram.utils import executor
 import sqlite3
 import datetime
 import json
+from aiogram.dispatcher import Dispatcher
+# from aiogram.utils.callback_data import CallbackData
+
 from helper import unpacker
 import logging
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.utils.callback_data import CallbackData
 
 # Создание бота
 TOKEN = '5165988091:AAGZ1qrF6r7f8cB_crlOzX0dpHltfViCyA8'
@@ -22,11 +26,17 @@ logging.basicConfig(
     format='%(asctime)s %(levelname)s %(name)s %(message)s',
     level=logging.ERROR
 )
+# turn_page_cb = CallbackData('turn_page', 'movement',
+#                           'page')  # Создание машины колбеков, которая используется в выводе сообщений в browse
 # Открытие нужных файлов
 with open('dates.txt', 'r', encoding='utf-8') as file:
     txtDates = file.readlines()
 with open("dates.json", "r") as read_file:
     JsDates = json.load(read_file)
+urlkb = InlineKeyboardMarkup(row_width=2)
+urlButton = InlineKeyboardButton(text='Назад', callback_data='list_back')
+urlButton2 = InlineKeyboardButton(text='Вперед', callback_data='list_forward')
+urlkb.add(urlButton, urlButton2)
 
 
 @dp.message_handler(commands=['start'])  # Функция приветствия и регистрации
@@ -64,33 +74,26 @@ async def info(msg: types.Message):
 
 
 @dp.message_handler(commands=['browse'])  # Первый прототип поиска по датам
-async def search(msg: types.Message):
+async def search(msg: types.Message):  # TODO запихнуть огромную кучу текста в 1 сообщение, которое можно перелистывать
     '''with open("dates.json", "r") as read_file:
         JsDates = json.load(read_file)'''
     argument = msg.get_args()  # Получение даты
     # print(f'Я получил дату! {argument}')
     # print(JsDates.keys())
     try:
-        if len(argument) == 3:  # TODO Доделать отсеивание лишних дат. ПРИМЕР: arg: 945 , 1945 in ans
-            argument = '0' + argument
-            # print('Код 3. Запрос')
-            date = cursor.execute(f''' SELECT * FROM dates WHERE date like '%{argument}%' ''').fetchall()
-            # print(f'Код 3. Получил: {date}')
-            if date:
-                # print(date)
-                for x in range(0, len('\n'.join(unpacker(date))), 4096):
-                    await bot.send_message(msg.chat.id, '\n'.join(unpacker(date))[x:x + 4096], parse_mode='markdown')
-            else:
-                await msg.reply('Ничего не  найдено!')
-        elif len(argument) >= 4:
+        if len(argument) >= 3:
+            if len(argument) == 3:
+                argument = '0' + argument
             # print('Код 4. Запрос')
             date = cursor.execute(f''' SELECT * FROM dates WHERE date like '%{argument}%' ''').fetchall()
             # print(f'Код 4. Получил: {date}')
             if date:
                 # print('Код 4. Отправляю...')
-                # await bot.send_message(msg.chat.id, '\n'.join(unpacker(date)))
-                for x in range(0, len('\n'.join(unpacker(date))), 4096):
-                    await bot.send_message(msg.chat.id, '\n'.join(unpacker(date))[x:x + 4096], parse_mode='markdown')
+                dates_filtered = ['\n'.join(unpacker(date))[x:x + 4096] for x in range(0, len('\n'.join(unpacker(date))), 4096)]
+                await bot.send_message(msg.chat.id, dates_filtered[0], reply_markup=urlkb)
+                '''for x in range(0, len('\n'.join(unpacker(date))), 4096):
+                    await bot.send_message(msg.chat.id, '\n'.join(unpacker(date))[x:x + 4096], parse_mode='markdown')'''
+                # print(dates_filtered)
                 # print('Код 4. Отправил')
             else:
                 await msg.reply('Ничего не найдено!')
@@ -99,6 +102,37 @@ async def search(msg: types.Message):
     except Exception as e:
         logging.error(str(e))
         await msg.reply('Ошибка запроса! Попробуйте вписать запрос по шаблону!')
+
+
+'''@dp.callback_query_handler(turn_page_cb.filter(action='forward'))
+async def vote_up_cb_handler(query: types.CallbackQuery, callback_data: dict):
+    page = int(callback_data['page'])
+    page += 1
+    if page > len(spis) - 1:
+        page = 0
+    await bot.edit_message_text(spis[page],
+                                query.from_user.id,
+                                query.message.message_id,
+                                reply_markup=get_keyboard(page))
+
+
+@dp.callback_query_handler(turn_page_cb.filter(action='down'))
+async def vote_down_cb_handler(query: types.CallbackQuery, callback_data: dict):
+    page = int(callback_data['page'])
+    page -= 1
+    if page < 0:
+        page = len(spis) - 1
+    await bot.edit_message_text(spis[page],
+                                query.from_user.id,
+                                query.message.message_id,
+                                reply_markup=get_keyboard(page))'''
+
+@dp.callback_query_handler(text='list_forward')
+async def list_forward_call(callback: types.CallbackQuery):
+    global num
+    num += 1
+    await callback.message.edit_text(listed[num%len(listed)], reply_markup=urlkb)
+    await callback.answer()
 
 
 @dp.message_handler(content_types=[types.ContentType.TEXT])  # Обработка обычных текстовых сообщений

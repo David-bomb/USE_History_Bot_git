@@ -1,6 +1,13 @@
 import sqlite3
 import json
 
+from aiogram import types
+from aiogram.types import InlineKeyboardMarkup
+from aiogram.utils.callback_data import CallbackData
+
+turn_page_cb = CallbackData('turn_page', 'movement',
+                            'page')  # Создание машины колбеков, которая используется в выводе сообщений в start
+
 
 def datesDB_rewrite():  # Переписывание БД с датами
     conn = sqlite3.connect('dates.db')
@@ -18,6 +25,7 @@ def datesDB_rewrite():  # Переписывание БД с датами
         cur.execute(sql, data_tuple)
         conn.commit()
 
+
 def usersDB_rewrite():
     # Этот файл нужен для переписывания базы данных пользователей в случае нужды
     conn = sqlite3.connect('users.db')
@@ -28,6 +36,7 @@ def usersDB_rewrite():
        name TEXT,
        regs DATETIME)
     """)
+
 
 def datesJS_rewrite():
     with open('dates.txt', encoding='utf-8') as file:
@@ -60,11 +69,14 @@ def datesTXTmoderniser():
         file.write(''.join(info))
 
 
-def unpacker(listt):
+def unpacker(listt: list) -> list:
     spis = []
     for i in listt:
         spis.append(f'{i[0]} - {i[1]}')
     return spis
 
-datesDB_rewrite()
 
+def get_keyboard(page: int = 0) -> InlineKeyboardMarkup:
+    return types.InlineKeyboardMarkup().row(
+        types.InlineKeyboardButton('Назад', callback_data=turn_page_cb.new(action='forward', page=page)),
+        types.InlineKeyboardButton('Вперед', callback_data=turn_page_cb.new(action='back', page=page)))
