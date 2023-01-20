@@ -9,6 +9,7 @@ from aiogram.dispatcher import Dispatcher
 from helper import unpacker
 import logging
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from tgbotpag import InlineKeyboardPaginator
 from aiogram.utils.callback_data import CallbackData
 
 # Создание бота
@@ -59,12 +60,20 @@ async def help(msg: types.Message):
     await msg.reply(message)
 
 
-@dp.message_handler(commands=['view_dates'])
-async def view(msg: types.Message):
+@dp.message_handler(commands=['view_dates'])  # Комманда для просмотра данных
+async def view(msg: types.Message, page=1):
     '''with open('dates.txt', 'r', encoding='utf-8') as file:
         txtDates = file.readlines()'''
-    for x in range(0, len('\n'.join(txtDates)), 4096):
-        await bot.send_message(msg.chat.id, '\n'.join(txtDates)[x:x + 4096], parse_mode='markdown')
+    '''for x in range(0, len('\n'.join(txtDates)), 4096):
+        await bot.send_message(msg.chat.id, '\n'.join(txtDates)[x:x + 4096], parse_mode='markdown')'''
+    dates_filtered = ['\n'.join(txtDates)[x:x + 1024] for x in  # Нарезка данных по 1024 символа
+                      range(0, len('\n'.join(txtDates)), 1024)]
+    paginator = InlineKeyboardPaginator(  # Создание пагинатора
+        len(dates_filtered),
+        current_page=page,
+        data_pattern='character#{page}')
+    await bot.send_message(msg.chat.id, dates_filtered[page - 1], reply_markup=paginator.markup,
+                           parse_mode='markdown')
 
 
 '''@dp.message_handler(commands=['info'])
@@ -74,7 +83,8 @@ async def info(msg: types.Message):
 
 
 @dp.message_handler(commands=['browse'])  # Первый прототип поиска по датам
-async def search(msg: types.Message):  # TODO запихнуть огромную кучу текста в 1 сообщение, которое можно перелистывать
+async def search(msg: types.Message,
+                 page=1):  # TODO запихнуть огромную кучу текста в 1 сообщение, которое можно перелистывать
     '''with open("dates.json", "r") as read_file:
         JsDates = json.load(read_file)'''
     argument = msg.get_args()  # Получение даты
@@ -86,11 +96,26 @@ async def search(msg: types.Message):  # TODO запихнуть огромну�
                 argument = '0' + argument
             # print('Код 4. Запрос')
             date = cursor.execute(f''' SELECT * FROM dates WHERE date like '%{argument}%' ''').fetchall()
+            # print(date)
             # print(f'Код 4. Получил: {date}')
             if date:
                 # print('Код 4. Отправляю...')
-                dates_filtered = ['\n'.join(unpacker(date))[x:x + 4096] for x in range(0, len('\n'.join(unpacker(date))), 4096)]
-                await bot.send_message(msg.chat.id, dates_filtered[0], reply_markup=urlkb)
+                if len(date) > 4096:
+                    '''dates_filtered = ['\n'.join(unpacker(date))[x:x + 4096] for x in
+                                      range(0, len('\n'.join(unpacker(date))), 4096)]
+                    print(dates_filtered)
+                    paginator = InlineKeyboardPaginator(
+                        len(dates_filtered),
+                        current_page=page,
+                        data_pattern='character#{page}')
+                    # await sender(dates_filtered, msg, page)
+                    await bot.send_message(msg.chat.id, dates_filtered[page - 1], reply_markup=paginator.markup,
+                                           parse_mode='markdown')'''
+                    for x in range(0, len('\n'.join(unpacker(date))), 4096):
+                        await bot.send_message(msg.chat.id, '\n'.join(unpacker(date))[x:x + 4096],
+                                               parse_mode='markdown')
+                else:
+                    await bot.send_message(msg.chat.id, '\n'.join(unpacker(date)))
                 '''for x in range(0, len('\n'.join(unpacker(date))), 4096):
                     await bot.send_message(msg.chat.id, '\n'.join(unpacker(date))[x:x + 4096], parse_mode='markdown')'''
                 # print(dates_filtered)
@@ -102,6 +127,20 @@ async def search(msg: types.Message):  # TODO запихнуть огромну�
     except Exception as e:
         logging.error(str(e))
         await msg.reply('Ошибка запроса! Попробуйте вписать запрос по шаблону!')
+
+
+@dp.callback_query_handler(lambda call: call.data.split('#')[0] == 'character')
+async def characters_page_callback(call):
+    page = int(call.data.split('#')[1])
+    await bot.delete_message(
+        call.message.chat.id,
+        call.message.message_id
+    )
+    await view(msg=call.message, page=page)
+
+
+async def sender(msg: types.Message, page=1):
+    pass
 
 
 '''@dp.callback_query_handler(turn_page_cb.filter(action='forward'))
@@ -127,14 +166,15 @@ async def vote_down_cb_handler(query: types.CallbackQuery, callback_data: dict):
                                 query.message.message_id,
                                 reply_markup=get_keyboard(page))'''
 
-@dp.callback_query_handler(text='list_forward')
+'''@dp.callback_query_handler(text='list_forward')
 async def list_forward_call(callback: types.CallbackQuery):
     global num
     num += 1
     await callback.message.edit_text(listed[num%len(listed)], reply_markup=urlkb)
-    await callback.answer()
+    await callback.answer()'''
 
 
+# Обработка стронних сообщений ----------------------------------------------------------------------------------------------------------
 @dp.message_handler(content_types=[types.ContentType.TEXT])  # Обработка обычных текстовых сообщений
 async def get_text_messages(msg: types.Message):
     await msg.reply(
