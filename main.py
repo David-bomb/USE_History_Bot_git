@@ -34,6 +34,7 @@ with open('dates.txt', 'r', encoding='utf-8') as file:
     txtDates = file.readlines()
 with open("dates.json", "r") as read_file:
     JsDates = json.load(read_file)
+
 urlkb = InlineKeyboardMarkup(row_width=2)
 urlButton = InlineKeyboardButton(text='Назад', callback_data='list_back')
 urlButton2 = InlineKeyboardButton(text='Вперед', callback_data='list_forward')
@@ -43,7 +44,7 @@ urlkb.add(urlButton, urlButton2)
 @dp.message_handler(commands=['start'])  # Функция приветствия и регистрации
 async def start(msg: types.Message):
     await msg.reply(
-        "Привет, меня зовут HistoryBot, но для вас просто Хисти. Готов вас проконсультировать по некоторым историческим вопросам!")
+        "Привет, меня зовут HistoryBot, но для вас просто Хисти. Готов вас проконсультировать по некоторым историческим вопросам!\nНапишите /help , чтобы увидеть мои возможности!")
     if not cur.execute(  # Регистрация юзера, если он еще не зарегистрирован
             f'''SELECT * FROM users WHERE id = {msg.from_user.id}''').fetchall():
         sql = '''INSERT INTO users(id, username, name, regs) VALUES(?, ?, ?, ?)'''
@@ -61,19 +62,37 @@ async def help(msg: types.Message):
 
 
 @dp.message_handler(commands=['view_dates'])  # Комманда для просмотра данных
-async def view(msg: types.Message, page=1):
-    '''with open('dates.txt', 'r', encoding='utf-8') as file:
-        txtDates = file.readlines()'''
+async def view(msg: types.Message, page=1, sent=None):
+    sent: types.Message = sent
     '''for x in range(0, len('\n'.join(txtDates)), 4096):
         await bot.send_message(msg.chat.id, '\n'.join(txtDates)[x:x + 4096], parse_mode='markdown')'''
-    dates_filtered = ['\n'.join(txtDates)[x:x + 1024] for x in  # Нарезка данных по 1024 символа
-                      range(0, len('\n'.join(txtDates)), 1024)]
+    lens = 0
+    ans = []
+    dates_filtered = []
+    for i in txtDates:
+        if lens + len(i) <= 1024:
+            ans.append(i)
+            lens += len(i)
+            # print(lens)
+        else:
+            # print(lens)
+            dates_filtered.append('\n'.join(ans))
+            # print('----------------')
+            lens = len(i)
+            ans = [i]
+    dates_filtered.append('\n'.join(ans))
+    '''dates_filtered = ['\n'.join(txtDates)[x:x + 1024] for x in  # Нарезка данных по 1024 символа
+                      range(0, len('\n'.join(txtDates)), 1024)]'''
     paginator = InlineKeyboardPaginator(  # Создание пагинатора
         len(dates_filtered),
         current_page=page,
         data_pattern='character#{page}')
-    await bot.send_message(msg.chat.id, dates_filtered[page - 1], reply_markup=paginator.markup,
-                           parse_mode='markdown')
+    if sent is None:
+        await bot.send_message(msg.chat.id, dates_filtered[page - 1], reply_markup=paginator.markup,
+                               parse_mode='markdown')
+    else:
+        await sent.edit_text(dates_filtered[page - 1], reply_markup=paginator.markup,
+                               parse_mode='markdown')
 
 
 '''@dp.message_handler(commands=['info'])
@@ -132,11 +151,12 @@ async def search(msg: types.Message,
 @dp.callback_query_handler(lambda call: call.data.split('#')[0] == 'character')
 async def characters_page_callback(call):
     page = int(call.data.split('#')[1])
-    await bot.delete_message(
+    '''await bot.delete_message(
         call.message.chat.id,
         call.message.message_id
-    )
-    await view(msg=call.message, page=page)
+    )'''
+    # print(call)
+    await view(msg=call.message, page=page, sent=call.message)
 
 
 async def sender(msg: types.Message, page=1):
@@ -248,4 +268,4 @@ async def get_text_messages(msg: types.Message):
 
 
 if __name__ == '__main__':
-    executor.start_polling(dp)
+    executor.start_polling(dp, skip_updates=True)
