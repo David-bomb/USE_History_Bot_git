@@ -5,25 +5,27 @@ from aiogram import types
 from aiogram.types import InlineKeyboardMarkup
 from aiogram.utils.callback_data import CallbackData
 
-turn_page_cb = CallbackData('turn_page', 'movement',
-                            'page')  # Создание машины колбеков, которая используется в выводе сообщений в start
-
 
 def datesDB_rewrite():  # Переписывание БД с датами
     conn = sqlite3.connect('dates.db')
     cur = conn.cursor()
     cur.execute("""CREATE TABLE IF NOT EXISTS dates( 
        date TEXT,
-       event TEXT
+       event TEXT,
+       event_lower TEXT
        )
     """)
     with open("dates.json", "r") as read_file:
         JsDates = json.load(read_file)
-    sql = '''INSERT INTO dates(date, event) VALUES(?, ?)'''
+    # print(JsDates)
+    sql = '''INSERT INTO dates(date, event, event_lower) VALUES(?, ?, ?)'''
     for i in JsDates.keys():
-        data_tuple = (i, JsDates[i])
+        data_tuple = (i, JsDates[i],  JsDates[i].lower())
         cur.execute(sql, data_tuple)
         conn.commit()
+    print('Успешно переписана БД')
+
+
 
 
 def usersDB_rewrite():
@@ -74,9 +76,4 @@ def unpacker(listt: list) -> list:
     for i in listt:
         spis.append(f'{i[0]} - {i[1]}')
     return spis
-
-
-def get_keyboard(page: int = 0) -> InlineKeyboardMarkup:
-    return types.InlineKeyboardMarkup().row(
-        types.InlineKeyboardButton('Назад', callback_data=turn_page_cb.new(action='forward', page=page)),
-        types.InlineKeyboardButton('Вперед', callback_data=turn_page_cb.new(action='back', page=page)))
+# datesJS_rewrite()

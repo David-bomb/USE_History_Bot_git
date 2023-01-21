@@ -57,7 +57,7 @@ async def start(msg: types.Message):
 
 @dp.message_handler(commands=['help'])  # Команда помощь ¯\_(ツ)_/¯
 async def help(msg: types.Message):
-    message = 'Нужна помощь? Я всегда любил помогать!\nЯ могу:\n-Отправить вам все даты, которые я знаю по команде /view_dates\n-Найти нужны вам даты по команде /browse [запрос], например: /browse 1945  , также можно и так:  /browse 9 мая 1945 , либо  /browse январь 1945. Лишних знаков препинания не треуется.\nЯ буду самосовершенствоваться. Я обещаю!!!\nP.s. Я знаю только даты по истории России, но я обязательно выучу новые, чтобы потом рассказывать их вам!'
+    message = 'Нужна помощь? Я всегда любил помогать!\nЯ могу:\n-Отправить вам все даты, которые я знаю по команде /view_dates \n-Найти нужные вам события по датам по команде /browse_dates [запрос], например: /browse_dates 1945  , также можно и так:  /browse_dates 9 мая 1945 , либо  /browse_dates январь 1945. Лишних знаков препинания не треуется.\n-Найти нужные вам разделы по событиям по команде /browse_event . Например: "/browse_event Курск" выдаст вам Курскую битву июля - августа 1943 \nЯ буду самосовершенствоваться. Я обещаю!!!\nP.s. Я знаю только даты по истории России, но я обязательно выучу новые, чтобы потом рассказывать их вам!'
     await msg.reply(message)
 
 
@@ -86,13 +86,24 @@ async def view(msg: types.Message, page=1, sent=None):
     paginator = InlineKeyboardPaginator(  # Создание пагинатора
         len(dates_filtered),
         current_page=page,
-        data_pattern='character#{page}')
+        data_pattern='date_list#{page}')
     if sent is None:
         await bot.send_message(msg.chat.id, dates_filtered[page - 1], reply_markup=paginator.markup,
                                parse_mode='markdown')
     else:
         await sent.edit_text(dates_filtered[page - 1], reply_markup=paginator.markup,
-                               parse_mode='markdown')
+                             parse_mode='markdown')
+
+
+@dp.callback_query_handler(lambda call: call.data.split('#')[0] == 'date_list')
+async def characters_page_callback(call):
+    page = int(call.data.split('#')[1])
+    '''await bot.delete_message(
+        call.message.chat.id,
+        call.message.message_id
+    )'''
+    # print(call)
+    await view(msg=call.message, page=page, sent=call.message)
 
 
 '''@dp.message_handler(commands=['info'])
@@ -101,9 +112,8 @@ async def info(msg: types.Message):
     await msg.reply(message)'''
 
 
-@dp.message_handler(commands=['browse'])  # Первый прототип поиска по датам
-async def search(msg: types.Message,
-                 page=1):  # TODO запихнуть огромную кучу текста в 1 сообщение, которое можно перелистывать
+@dp.message_handler(commands=['browse_dates'])  # Первый прототип поиска по датам
+async def search_date(msg: types.Message):
     '''with open("dates.json", "r") as read_file:
         JsDates = json.load(read_file)'''
     argument = msg.get_args()  # Получение даты
@@ -114,7 +124,8 @@ async def search(msg: types.Message,
             if len(argument) == 3:
                 argument = '0' + argument
             # print('Код 4. Запрос')
-            date = cursor.execute(f''' SELECT * FROM dates WHERE date like '%{argument}%' ''').fetchall()
+            date = cursor.execute(f''' SELECT date, event FROM dates WHERE date like '%{argument}%' ''').fetchall()
+            # print(date)
             # print(date)
             # print(f'Код 4. Получил: {date}')
             if date:
@@ -148,53 +159,29 @@ async def search(msg: types.Message,
         await msg.reply('Ошибка запроса! Попробуйте вписать запрос по шаблону!')
 
 
-@dp.callback_query_handler(lambda call: call.data.split('#')[0] == 'character')
-async def characters_page_callback(call):
-    page = int(call.data.split('#')[1])
-    '''await bot.delete_message(
-        call.message.chat.id,
-        call.message.message_id
-    )'''
-    # print(call)
-    await view(msg=call.message, page=page, sent=call.message)
+@dp.message_handler(commands=['browse_event'])
+async def search_event(msg: types.Message):
+    argument = msg.get_args().lower()  # Получение события
+    try:
+        if len(argument) >= 4:
+            data = cursor.execute(f''' SELECT date, event FROM dates WHERE event_lower like '%{argument}%' ''').fetchall()
+            if data:
+                if len(data) > 4096:
+                    for x in range(0, len('\n'.join(unpacker(data))), 4096):
+                        await bot.send_message(msg.chat.id, '\n'.join(unpacker(data))[x:x + 4096],
+                                               parse_mode='markdown')
+                else:
+                    await bot.send_message(msg.chat.id, '\n'.join(unpacker(data)))
+            else:
+                await msg.reply('Ничего не найдено!')
+        else:
+            await msg.reply('Не могу обработать запрос короче 4 символов')
+    except Exception as e:
+        logging.error(str(e))
+        await msg.reply('Ошибка запроса!')
 
 
-async def sender(msg: types.Message, page=1):
-    pass
-
-
-'''@dp.callback_query_handler(turn_page_cb.filter(action='forward'))
-async def vote_up_cb_handler(query: types.CallbackQuery, callback_data: dict):
-    page = int(callback_data['page'])
-    page += 1
-    if page > len(spis) - 1:
-        page = 0
-    await bot.edit_message_text(spis[page],
-                                query.from_user.id,
-                                query.message.message_id,
-                                reply_markup=get_keyboard(page))
-
-
-@dp.callback_query_handler(turn_page_cb.filter(action='down'))
-async def vote_down_cb_handler(query: types.CallbackQuery, callback_data: dict):
-    page = int(callback_data['page'])
-    page -= 1
-    if page < 0:
-        page = len(spis) - 1
-    await bot.edit_message_text(spis[page],
-                                query.from_user.id,
-                                query.message.message_id,
-                                reply_markup=get_keyboard(page))'''
-
-'''@dp.callback_query_handler(text='list_forward')
-async def list_forward_call(callback: types.CallbackQuery):
-    global num
-    num += 1
-    await callback.message.edit_text(listed[num%len(listed)], reply_markup=urlkb)
-    await callback.answer()'''
-
-
-# Обработка стронних сообщений ----------------------------------------------------------------------------------------------------------
+# Обработка стронних сообщений -------------------------------------------------------------------------------------
 @dp.message_handler(content_types=[types.ContentType.TEXT])  # Обработка обычных текстовых сообщений
 async def get_text_messages(msg: types.Message):
     await msg.reply(
