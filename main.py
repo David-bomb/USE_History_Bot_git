@@ -10,6 +10,7 @@ from helper import unpacker
 import logging
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from tgbotpag import InlineKeyboardPaginator
+import pymorphy2
 from aiogram.utils.callback_data import CallbackData
 
 # Создание бота
@@ -39,6 +40,8 @@ urlkb = InlineKeyboardMarkup(row_width=2)
 urlButton = InlineKeyboardButton(text='Назад', callback_data='list_back')
 urlButton2 = InlineKeyboardButton(text='Вперед', callback_data='list_forward')
 urlkb.add(urlButton, urlButton2)
+
+morph = pymorphy2.MorphAnalyzer()
 
 
 @dp.message_handler(commands=['start'])  # Функция приветствия и регистрации
@@ -124,7 +127,16 @@ async def search_date(msg: types.Message):
             if len(argument) == 3:
                 argument = '0' + argument
             # print('Код 4. Запрос')
-            date = cursor.execute(f''' SELECT date, event FROM dates WHERE date like '%{argument}%' ''').fetchall()
+            if argument.isalpha() and len(argument.split()) == 1:
+                words = [morph.parse(argument)[0].inflect({'gent'}).word, morph.parse(argument)[0].inflect({'nomn'}).word]
+                # print('Месяца:', words)
+                ans = set()
+                for i in words:
+                    ans.update(cursor.execute(
+                        f''' SELECT date, event FROM dates WHERE date like '%{i}%' ''').fetchall())
+                date = list(ans)
+            else:
+                date = cursor.execute(f''' SELECT date, event FROM dates WHERE date like '%{argument}%' ''').fetchall()
             # print(date)
             # print(date)
             # print(f'Код 4. Получил: {date}')
@@ -162,9 +174,38 @@ async def search_date(msg: types.Message):
 @dp.message_handler(commands=['browse_event'])
 async def search_event(msg: types.Message):
     argument = msg.get_args().lower()  # Получение события
+    one_word_in_arg = len(argument.split()) == 1
+    data = None
     try:
         if len(argument) >= 4:
-            data = cursor.execute(f''' SELECT date, event FROM dates WHERE event_lower like '%{argument}%' ''').fetchall()
+            all_dates = set()
+            if not (one_word_in_arg and 'NOUN' in morph.parse(argument)[0].tag):
+                data = cursor.execute(
+                    f''' SELECT date, event FROM dates WHERE event_lower like '%{argument}%' ''').fetchall()
+            else:
+                try:
+                    parsed = morph.parse(argument)[0]
+                    if 'NOUN' in parsed.tag:
+                        try:
+                            words = [parsed.inflect({'nomn'}).word, parsed.inflect(
+                                                {'gent'}).word, parsed.inflect(
+                                            {'datv'}).word, parsed.inflect({'accs'}).word, parsed.inflect({'accs'}).word, parsed.inflect({'ablt'}).word,
+                                     parsed.inflect({'loct'}).word, parsed.inflect({'plur'}).word, parsed.inflect({'sing'}).word]
+                        except:
+                            words = [parsed.inflect({'nomn'}).word, parsed.inflect(
+                                {'gent'}).word, parsed.inflect(
+                                {'datv'}).word, parsed.inflect({'accs'}).word, parsed.inflect({'accs'}).word,
+                                     parsed.inflect({'ablt'}).word,
+                                     parsed.inflect({'loct'}).word]
+                        ans = set()
+                        for i in words:
+                            ans.update(cursor.execute(f''' SELECT date, event FROM dates WHERE event_lower like '%{i}%' ''').fetchall())
+                        data = list(ans)
+                except Exception as f:
+                    logging.error(str(f))
+                    data = cursor.execute(
+                        f''' SELECT date, event FROM dates WHERE event_lower like '%{argument}%' ''').fetchall()
+
             if data:
                 if len(data) > 4096:
                     for x in range(0, len('\n'.join(unpacker(data))), 4096):
@@ -180,6 +221,10 @@ async def search_event(msg: types.Message):
         logging.error(str(e))
         await msg.reply('Ошибка запроса!')
 
+
+@dp.message_handler(commands=['info'])
+async def info(msg: types.Message):
+    await msg.reply('У меня характер довольно-таки своеобразный, так что у меня есть фишки, которыми я могу вас удивить! \n В поиске по датам (командой /browse_event ) запросы должны быть довольно таки точными, пока мне тяжело искать для вас события, если вы их формулируете по своему. И для того, чтобы всё-таки найти то, что вам нужно, вы должны писать общие слова или их части, чтобы я смог найти что-то точно. \n Но я кое-чему научился! Я могу поискать разные формы существительного, если вы вбили только одно слово. Например: "/browse_event Курском" выдаст вам Курскую битву. \n Я стараюсь учиться, но ботам тоже нелегко дается самосовершенствование...')
 
 # Обработка стронних сообщений -------------------------------------------------------------------------------------
 @dp.message_handler(content_types=[types.ContentType.TEXT])  # Обработка обычных текстовых сообщений
