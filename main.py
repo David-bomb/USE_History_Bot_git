@@ -8,13 +8,13 @@ from aiogram.dispatcher import Dispatcher
 
 from helper import unpacker
 import logging
+from Token import TOKEN
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from tgbotpag import InlineKeyboardPaginator
 import pymorphy2
 from aiogram.utils.callback_data import CallbackData
 
 # Создание бота
-TOKEN = '5165988091:AAGZ1qrF6r7f8cB_crlOzX0dpHltfViCyA8'
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
 # Создание соединений с файлами, вероятно перемещение их в отдельный файл
@@ -224,7 +224,7 @@ async def search_event(msg: types.Message):
 
 @dp.message_handler(commands=['info'])
 async def info(msg: types.Message):
-    await msg.reply('У меня характер довольно-таки своеобразный, так что у меня есть фишки, которыми я могу вас удивить! \n В поиске по датам (командой /browse_event ) запросы должны быть довольно таки точными, пока мне тяжело искать для вас события, если вы их формулируете по своему. И для того, чтобы всё-таки найти то, что вам нужно, вы должны писать общие слова или их части, чтобы я смог найти что-то точно. \n Но я кое-чему научился! Я могу поискать разные формы существительного, если вы вбили только одно слово. Например: "/browse_event Курском" выдаст вам Курскую битву. \n Я стараюсь учиться, но ботам тоже нелегко дается самосовершенствование...')
+    await msg.reply('У меня характер довольно-таки своеобразный, так что у меня есть фишки, которыми я могу вас удивить! \n В поиске по датам (командой /browse_event ) запросы должны быть довольно-таки точными, пока мне тяжело искать для вас события, если вы их формулируете по своему. И для того, чтобы всё-таки найти то, что вам нужно, вы должны писать общие слова или их части, чтобы я смог найти что-то точно. \n Но я кое-чему научился! Я могу поискать разные формы существительного, если вы вбили только одно слово. Например: "/browse_event Курском" выдаст вам Курскую битву. \n Я стараюсь учиться, но ботам тоже нелегко дается самосовершенствование...')
 
 # Обработка стронних сообщений -------------------------------------------------------------------------------------
 @dp.message_handler(content_types=[types.ContentType.TEXT])  # Обработка обычных текстовых сообщений
@@ -300,4 +300,5 @@ async def get_text_messages(msg: types.Message):
 
 
 if __name__ == '__main__':
+    print('Bot is active')
     executor.start_polling(dp, skip_updates=True)
