@@ -8,14 +8,14 @@ from aiogram.dispatcher import Dispatcher
 
 from helper import unpacker
 import logging
-from Token import TOKEN
+# from Token import TOKEN
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from tgbotpag import InlineKeyboardPaginator
 import pymorphy2
 from aiogram.utils.callback_data import CallbackData
 
 # Создание бота
-bot = Bot(token=TOKEN)
+bot = Bot(token='5165988091:AAGZ1qrF6r7f8cB_crlOzX0dpHltfViCyA8')
 dp = Dispatcher(bot)
 # Создание соединений с файлами, вероятно перемещение их в отдельный файл
 conn = sqlite3.connect('users.db')
@@ -60,7 +60,7 @@ async def start(msg: types.Message):
 
 @dp.message_handler(commands=['help'])  # Команда помощь ¯\_(ツ)_/¯
 async def help(msg: types.Message):
-    message = 'Нужна помощь? Я всегда любил помогать!\nЯ могу:\n-Отправить вам все даты, которые я знаю по команде /view_dates \n-Найти нужные вам события по датам по команде /browse_dates [запрос], например: /browse_dates 1945  , также можно и так:  /browse_dates 9 мая 1945 , либо  /browse_dates январь 1945. Лишних знаков препинания не треуется.\n-Найти нужные вам разделы по событиям по команде /browse_event . Например: "/browse_event Курск" выдаст вам Курскую битву июля - августа 1943 \nЯ буду самосовершенствоваться. Я обещаю!!!\nP.s. Я знаю только даты по истории России, но я обязательно выучу новые, чтобы потом рассказывать их вам!'
+    message = 'Нужна помощь? Я всегда любил помогать!\nЯ могу:\n-Отправить вам все даты, которые я знаю по команде /view_dates \n-Найти нужные вам события по датам по команде /browse_dates [запрос], например: /browse_dates 1945  , также можно и так:  /browse_dates 9 мая 1945 , либо  /browse_dates январь 1945. Лишних знаков препинания не треуется.\n-Найти нужные вам разделы по событиям по команде /browse_event . Например: "/browse_event Курск" выдаст вам Курскую битву июля - августа 1943 \nЯ буду самосовершенствоваться. Я обещаю!!!\nP.s. Я знаю только даты по истории России, но я обязательно выучу новые, чтобы потом рассказывать их вам!\n*Все данные взяты из базы ФИПИ'
     await msg.reply(message)
 
 
@@ -84,12 +84,15 @@ async def view(msg: types.Message, page=1, sent=None):
             lens = len(i)
             ans = [i]
     dates_filtered.append('\n'.join(ans))
+    print('Date list done')
     '''dates_filtered = ['\n'.join(txtDates)[x:x + 1024] for x in  # Нарезка данных по 1024 символа
                       range(0, len('\n'.join(txtDates)), 1024)]'''
     paginator = InlineKeyboardPaginator(  # Создание пагинатора
         len(dates_filtered),
         current_page=page,
         data_pattern='date_list#{page}')
+    print('Pages created')
+    print('SHOWN:\n--------------------------------------------------\n', dates_filtered[page-1], '\n-------------------------------------')
     if sent is None:
         await bot.send_message(msg.chat.id, dates_filtered[page - 1], reply_markup=paginator.markup,
                                parse_mode='markdown')
@@ -106,6 +109,7 @@ async def characters_page_callback(call):
         call.message.message_id
     )'''
     # print(call)
+    print('New page shown: no accident')
     await view(msg=call.message, page=page, sent=call.message)
 
 
@@ -120,6 +124,7 @@ async def search_date(msg: types.Message):
     '''with open("dates.json", "r") as read_file:
         JsDates = json.load(read_file)'''
     argument = msg.get_args()  # Получение даты
+    print('Argument received')
     # print(f'Я получил дату! {argument}')
     # print(JsDates.keys())
     try:
@@ -129,7 +134,7 @@ async def search_date(msg: types.Message):
             # print('Код 4. Запрос')
             if argument.isalpha() and len(argument.split()) == 1:
                 words = [morph.parse(argument)[0].inflect({'gent'}).word, morph.parse(argument)[0].inflect({'nomn'}).word]
-                # print('Месяца:', words)
+                print('Clever month search is active')
                 ans = set()
                 for i in words:
                     ans.update(cursor.execute(
@@ -153,10 +158,12 @@ async def search_date(msg: types.Message):
                     # await sender(dates_filtered, msg, page)
                     await bot.send_message(msg.chat.id, dates_filtered[page - 1], reply_markup=paginator.markup,
                                            parse_mode='markdown')'''
+                    print('FOUND:\n----------------------------------------------------------\n', date, '\n------------------------------------')
                     for x in range(0, len('\n'.join(unpacker(date))), 4096):
                         await bot.send_message(msg.chat.id, '\n'.join(unpacker(date))[x:x + 4096],
                                                parse_mode='markdown')
                 else:
+                    print('FOUND:\n----------------------------------------------------------\n', date, '\n------------------------------------')
                     await bot.send_message(msg.chat.id, '\n'.join(unpacker(date)))
                 '''for x in range(0, len('\n'.join(unpacker(date))), 4096):
                     await bot.send_message(msg.chat.id, '\n'.join(unpacker(date))[x:x + 4096], parse_mode='markdown')'''
@@ -177,11 +184,12 @@ async def search_event(msg: types.Message):
     one_word_in_arg = len(argument.split()) == 1
     data = None
     try:
-        if len(argument) >= 4:
+        if len(argument) >= 3:
             all_dates = set()
             if not (one_word_in_arg and 'NOUN' in morph.parse(argument)[0].tag):
                 data = cursor.execute(
                     f''' SELECT date, event FROM dates WHERE event_lower like '%{argument}%' ''').fetchall()
+                print('Argument searched in base')
             else:
                 try:
                     parsed = morph.parse(argument)[0]
@@ -191,15 +199,19 @@ async def search_event(msg: types.Message):
                                                 {'gent'}).word, parsed.inflect(
                                             {'datv'}).word, parsed.inflect({'accs'}).word, parsed.inflect({'accs'}).word, parsed.inflect({'ablt'}).word,
                                      parsed.inflect({'loct'}).word, parsed.inflect({'plur'}).word, parsed.inflect({'sing'}).word]
+                            print('Different forms of received word searched: nomn, gent, datv, accs, ablt, loct, plur, sing')
                         except:
                             words = [parsed.inflect({'nomn'}).word, parsed.inflect(
                                 {'gent'}).word, parsed.inflect(
                                 {'datv'}).word, parsed.inflect({'accs'}).word, parsed.inflect({'accs'}).word,
                                      parsed.inflect({'ablt'}).word,
                                      parsed.inflect({'loct'}).word]
+                            print(
+                                'Different forms of received word searched: nomn, gent, datv, accs, ablt, loct')
                         ans = set()
                         for i in words:
                             ans.update(cursor.execute(f''' SELECT date, event FROM dates WHERE event_lower like '%{i}%' ''').fetchall())
+                        print('Argument searched in base')
                         data = list(ans)
                 except Exception as f:
                     logging.error(str(f))
@@ -207,6 +219,7 @@ async def search_event(msg: types.Message):
                         f''' SELECT date, event FROM dates WHERE event_lower like '%{argument}%' ''').fetchall()
 
             if data:
+                print('FOUND:\n--------------------------------------------------\n', data, '\n---------------------------------')
                 if len(data) > 4096:
                     for x in range(0, len('\n'.join(unpacker(data))), 4096):
                         await bot.send_message(msg.chat.id, '\n'.join(unpacker(data))[x:x + 4096],
